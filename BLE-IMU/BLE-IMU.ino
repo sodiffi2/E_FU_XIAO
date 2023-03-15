@@ -9,6 +9,11 @@ const float accelerationThreshold = 5;  // threshold of significant in G's
 const int numSamples = 100;
 int samplesRead = numSamples;
 int numbers=0;
+int axis_X,axis_Y,axis_Z;
+int minval=265;
+int maxval=402;
+double d,e,f;
+
 
 BLEService bleService("19B10000-E8F2-537E-4F6C-D104768A1214");  // Bluetooth® Low Energy Service
 
@@ -57,7 +62,7 @@ void setup() {
 void loop() {
   // listen for Bluetooth® Low Energy peripherals to connect:
   BLEDevice central = BLE.central();
-
+  
   // if a central is connected to peripheral:
   if (central) {
     Serial.print("Connected to central: ");
@@ -91,15 +96,32 @@ void loop() {
               break;
             }
           }
+          
+          myIMU.beginTransmission(MPU_addr);
+          myIMU.write(0x3B);
+          myIMU.endTransmission(false);
+          myIMU.requestFrom(MPU_addr,14,true);
+
 
           while (samplesRead < numSamples) {
             samplesRead++;
             float a = myIMU.readFloatAccelX();
             float b = myIMU.readFloatAccelY();
             float c = myIMU.readFloatAccelZ();
-            float d = myIMU.readFloatGyroX();
-            float e = myIMU.readFloatGyroY();
-            float f = myIMU.readFloatGyroZ();
+            
+            axis_X=myIMU.read()<<8|myIMU.read();
+            axis_Y=myIMU.read()<<8|myIMU.read();
+            axis_Z=myIMU.read()<<8|myIMU.read();
+            int xAng = map(axis_X,minVal,maxVal,-90,90);
+            int yAng = map(axis_Y,minVal,maxVal,-90,90);
+            int zAng = map(axis_Z,minVal,maxVal,-90,90);
+            //Convert to Degrees
+              d= RAD_TO_DEG * (atan2(-yAng, -zAng)+PI);
+              e= RAD_TO_DEG * (atan2(-xAng, -zAng)+PI);
+              f= RAD_TO_DEG * (atan2(-yAng, -xAng)+PI);
+            //float d = myIMU.readFloatGyroX();
+            //float e = myIMU.readFloatGyroY();
+            //float f = myIMU.readFloatGyroZ();
             numbers++;
             // print the data in CSV format
             Serial.print(a, 3);
