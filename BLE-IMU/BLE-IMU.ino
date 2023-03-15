@@ -1,67 +1,68 @@
 
 
 #include <ArduinoBLE.h>
-// #include <MqttSerial.h>
 #include <LSM6DS3.h>
 #include <Wire.h>
 LSM6DS3 myIMU(I2C_MODE, 0x6A);  //I2C device address 0x6A
 float aX, aY, aZ, gX, gY, gZ;
-const float accelerationThreshold = 2.5;  // threshold of significant in G's
-const int numSamples = 10;
+const float accelerationThreshold = 5;  // threshold of significant in G's
+const int numSamples = 100;
 int samplesRead = numSamples;
+int numbers=0;
+int axis_X,axis_Y,axis_Z;
+int minval=265;
+int maxval=402;
+double d,e,f;
 
-BLEService ledService("19B10000-E8F2-537E-4F6C-D104768A1214");  // Bluetooth® Low Energy LED Service
 
-// Bluetooth® Low Energy LED Switch Characteristic - custom 128-bit UUID, read and writable by central
-BLEByteCharacteristic switchCharacteristic("19B10001-E8F2-537E-4F6C-D104768A1214", BLERead | BLEWrite);
+BLEService bleService("19B10000-E8F2-537E-4F6C-D104768A1214");  // Bluetooth® Low Energy Service
 
-const int ledPin = LED_BUILTIN;  // pin to use for the LED
+// Bluetooth® Low Energy Characteristic 
+BLEBoolCharacteristic switchChar("ff00", BLERead | BLEWrite);
+BLEStringCharacteristic numberChar("ff01", BLERead | BLENotify, 20);
+BLEStringCharacteristic recordChar("ff02", BLERead | BLENotify, 72);
+
+
 
 void setup() {
   Serial.begin(9600);
-  
-
-  // set LED pin to output mode
-  pinMode(ledPin, OUTPUT);
-
-  // begin initialization
-  if (!BLE.begin()) {
-    Serial.println("starting Bluetooth® Low Energy module failed!");
-
-    while (1)
-      ;
-  }
   if (myIMU.begin() != 0) {
     Serial.println("Device error");
   } else {
     Serial.println("aX,aY,aZ,gX,gY,gZ");
   }
-
+  // begin initialization
+  if (!BLE.begin()) {
+    Serial.println("starting Bluetooth® Low Energy module failed!");
+    while (1)
+      ;
+  }
   // set advertised local name and service UUID:
-  BLE.setLocalName("LED");
-  BLE.setAdvertisedService(ledService);
+  BLE.setLocalName("e-fu .111");
 
   // add the characteristic to the service
-  ledService.addCharacteristic(switchCharacteristic);
+  bleService.addCharacteristic(switchChar);
+  bleService.addCharacteristic(numberChar);
+  bleService.addCharacteristic(recordChar);
 
   // add service
-  BLE.addService(ledService);
+  BLE.addService(bleService);
 
   // set the initial value for the characeristic:
-  switchCharacteristic.writeValue(0);
-
+  switchChar.writeValue(0);
+  switchChar.broadcast();
+  numberChar.writeValue("0");
+  recordChar.writeValue("");
+  BLE.setAdvertisedService(bleService);
+  BLE.setLocalName("e-fu .111");
   // start advertising
   BLE.advertise();
-
-  Serial.println("BLE LED Peripheral");
-  // mqttSerial.begin("quickstart.messaging.internetofthings.ibmcloud.com", "1883", "", "");  
-  // mqttSerial.connect();
 }
 
 void loop() {
   // listen for Bluetooth® Low Energy peripherals to connect:
   BLEDevice central = BLE.central();
-
+  
   // if a central is connected to peripheral:
   if (central) {
     Serial.print("Connected to central: ");
@@ -72,11 +73,13 @@ void loop() {
     while (central.connected()) {
       // if the remote device wrote to the characteristic,
       // use the value to control the LED:
-      if (switchCharacteristic.written()) {
-        Serial.println(switchCharacteristic.value());
-        if (switchCharacteristic.value()==48) {  // any value other than 0
+      if (switchChar.written()) {
+        Serial.println("get value : ");
+        Serial.println(switchChar.value());
+        if (switchChar.value()) {  
+          numbers=0;// any value other than 0
           Serial.println("start !!");
-           
+
           while (samplesRead == numSamples) {
             // read the acceleration data
             aX = myIMU.readFloatAccelX();
@@ -93,41 +96,57 @@ void loop() {
               break;
             }
           }
+          
+          myIMU.beginTransmission(MPU_addr);
+          myIMU.write(0x3B);
+          myIMU.endTransmission(false);
+          myIMU.requestFrom(MPU_addr,14,true);
 
-          // check if the all the required samples have been read since
-          // the last time the significant motion was detected
+
           while (samplesRead < numSamples) {
-            // check if both new acceleration and gyroscope data is
-            // available
-            // read the acceleration and gyroscope data
-
             samplesRead++;
-
+            float a = myIMU.readFloatAccelX();
+            float b = myIMU.readFloatAccelY();
+            float c = myIMU.readFloatAccelZ();
+            
+            axis_X=myIMU.read()<<8|myIMU.read();
+            axis_Y=myIMU.read()<<8|myIMU.read();
+            axis_Z=myIMU.read()<<8|myIMU.read();
+            int xAng = map(axis_X,minVal,maxVal,-90,90);
+            int yAng = map(axis_Y,minVal,maxVal,-90,90);
+            int zAng = map(axis_Z,minVal,maxVal,-90,90);
+            //Convert to Degrees
+              d= RAD_TO_DEG * (atan2(-yAng, -zAng)+PI);
+              e= RAD_TO_DEG * (atan2(-xAng, -zAng)+PI);
+              f= RAD_TO_DEG * (atan2(-yAng, -xAng)+PI);
+            //float d = myIMU.readFloatGyroX();
+            //float e = myIMU.readFloatGyroY();
+            //float f = myIMU.readFloatGyroZ();
+            numbers++;
             // print the data in CSV format
-            Serial.print(myIMU.readFloatAccelX(), 3);
+            Serial.print(a, 3);
             Serial.print(',');
-            Serial.print(myIMU.readFloatAccelY(), 3);
+            Serial.print(b, 3);
             Serial.print(',');
-            Serial.print(myIMU.readFloatAccelZ(), 3);
+            Serial.print(c, 3);
             Serial.print(',');
-            Serial.print(myIMU.readFloatGyroX(), 3);
+            Serial.print(d, 3);
             Serial.print(',');
-            Serial.print(myIMU.readFloatGyroY(), 3);
+            Serial.print(e, 3);
             Serial.print(',');
-            Serial.print(myIMU.readFloatGyroZ(), 3);
+            Serial.print(f, 3);
             Serial.println();
-            // String pub = "{\"d\": {\"Temp\": \""+ 3 +"\"}}";
-            // mqttSerial.publish("iot-2/evt/status/fmt/json", pub);
+
+            updateIMU(a, b, c, d, e, f);
 
             if (samplesRead == numSamples) {
               // add an empty line if it's the last sample
               Serial.println();
             }
-          }       // will turn the LED on
+          }       
         } else {  // a 0 value
           Serial.println("end !!");
-          //   Serial.println(F("LED off"));
-          // digitalWrite(ledPin, LOW);  // will turn the LED off
+          
         }
       }
     }
@@ -136,4 +155,11 @@ void loop() {
     Serial.print(F("Disconnected from central: "));
     Serial.println(central.address());
   }
+}
+
+void updateIMU(float ax, float ay, float az, float gx, float gy, float gz) {
+
+  recordChar.writeValue(String(ax) + "," + String(ay) + "," + String(az) + "," + String(gx) + "," + String(gy) + "," + String(gz));
+  numberChar.writeValue(String(numbers));
+  
 }
