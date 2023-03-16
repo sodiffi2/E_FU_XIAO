@@ -9,7 +9,7 @@ const float accelerationThreshold = 5;  // threshold of significant in G's
 const int numSamples = 100;
 int samplesRead = numSamples;
 int numbers=0;
-int axis_X,axis_Y,axis_Z;
+//int axis_X,axis_Y,axis_Z;
 int minval=265;
 int maxval=402;
 double d,e,f;
@@ -96,11 +96,6 @@ void loop() {
               break;
             }
           }
-          
-          myIMU.beginTransmission(MPU_addr);
-          myIMU.write(0x3B);
-          myIMU.endTransmission(false);
-          myIMU.requestFrom(MPU_addr,14,true);
 
 
           while (samplesRead < numSamples) {
@@ -109,9 +104,9 @@ void loop() {
             float b = myIMU.readFloatAccelY();
             float c = myIMU.readFloatAccelZ();
             
-            axis_X=myIMU.read()<<8|myIMU.read();
-            axis_Y=myIMU.read()<<8|myIMU.read();
-            axis_Z=myIMU.read()<<8|myIMU.read();
+            float axis_X=myIMU.readFloatGyroX();
+            float axis_Y=myIMU.readFloatGyroY();
+            float axis_Z=myIMU.readFloatGyroZ();
             int xAng = map(axis_X,minVal,maxVal,-90,90);
             int yAng = map(axis_Y,minVal,maxVal,-90,90);
             int zAng = map(axis_Z,minVal,maxVal,-90,90);
