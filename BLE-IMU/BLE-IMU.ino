@@ -6,18 +6,17 @@
 LSM6DS3 myIMU(I2C_MODE, 0x6A);  //I2C device address 0x6A
 float aX, aY, aZ, gX, gY, gZ;
 const float accelerationThreshold = 5;  // threshold of significant in G's
-const int numSamples = 100;
+const int numSamples = 10000;
 int samplesRead = numSamples;
-int numbers=0;
 //int axis_X,axis_Y,axis_Z;
-int minval=265;
-int maxval=402;
-double d,e,f;
+int minval = 265;
+int maxval = 402;
+double d, e, f;
 
 
 BLEService bleService("19B10000-E8F2-537E-4F6C-D104768A1214");  // Bluetooth® Low Energy Service
 
-// Bluetooth® Low Energy Characteristic 
+// Bluetooth® Low Energy Characteristic
 BLEBoolCharacteristic switchChar("ff00", BLERead | BLEWrite);
 BLEStringCharacteristic numberChar("ff01", BLERead | BLENotify, 20);
 BLEStringCharacteristic recordChar("ff02", BLERead | BLENotify, 72);
@@ -62,7 +61,7 @@ void setup() {
 void loop() {
   // listen for Bluetooth® Low Energy peripherals to connect:
   BLEDevice central = BLE.central();
-  
+
   // if a central is connected to peripheral:
   if (central) {
     Serial.print("Connected to central: ");
@@ -76,8 +75,7 @@ void loop() {
       if (switchChar.written()) {
         Serial.println("get value : ");
         Serial.println(switchChar.value());
-        if (switchChar.value()) {  
-          numbers=0;// any value other than 0
+        if (switchChar.value()) {
           Serial.println("start !!");
 
           while (samplesRead == numSamples) {
@@ -103,21 +101,18 @@ void loop() {
             float a = myIMU.readFloatAccelX();
             float b = myIMU.readFloatAccelY();
             float c = myIMU.readFloatAccelZ();
-            
-            float axis_X=myIMU.readFloatGyroX();
-            float axis_Y=myIMU.readFloatGyroY();
-            float axis_Z=myIMU.readFloatGyroZ();
-            int xAng = map(axis_X,minVal,maxVal,-90,90);
-            int yAng = map(axis_Y,minVal,maxVal,-90,90);
-            int zAng = map(axis_Z,minVal,maxVal,-90,90);
+
+            float axis_X = myIMU.readFloatGyroX();
+            float axis_Y = myIMU.readFloatGyroY();
+            float axis_Z = myIMU.readFloatGyroZ();
+           
             //Convert to Degrees
-              d= RAD_TO_DEG * (atan2(-yAng, -zAng)+PI);
-              e= RAD_TO_DEG * (atan2(-xAng, -zAng)+PI);
-              f= RAD_TO_DEG * (atan2(-yAng, -xAng)+PI);
-            //float d = myIMU.readFloatGyroX();
-            //float e = myIMU.readFloatGyroY();
-            //float f = myIMU.readFloatGyroZ();
-            numbers++;
+            d = RAD_TO_DEG * (atan2(-yAng, -zAng) + PI);
+            e = RAD_TO_DEG * (atan2(-xAng, -zAng) + PI);
+            f = RAD_TO_DEG * (atan2(-yAng, -xAng) + PI);
+           
+            float pitch=(180*atan2(a,sqrt(b*b+c*c))/PI);
+            float roll=(180*atan2(b,sqrt(a*a+c*c))/PI);
             // print the data in CSV format
             Serial.print(a, 3);
             Serial.print(',');
@@ -130,18 +125,20 @@ void loop() {
             Serial.print(e, 3);
             Serial.print(',');
             Serial.print(f, 3);
+            Serial.print(pitch,3);
+            Serial.print(',');
+            Serial.print(roll,3);
             Serial.println();
 
-            updateIMU(a, b, c, d, e, f);
+            updateIMU(a, b, c, axis_X, axis_Y, axis_Ｚ);
 
             if (samplesRead == numSamples) {
               // add an empty line if it's the last sample
               Serial.println();
             }
-          }       
+          }
         } else {  // a 0 value
           Serial.println("end !!");
-          
         }
       }
     }
@@ -155,6 +152,4 @@ void loop() {
 void updateIMU(float ax, float ay, float az, float gx, float gy, float gz) {
 
   recordChar.writeValue(String(ax) + "," + String(ay) + "," + String(az) + "," + String(gx) + "," + String(gy) + "," + String(gz));
-  numberChar.writeValue(String(numbers));
-  
 }
