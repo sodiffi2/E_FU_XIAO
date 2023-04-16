@@ -106,31 +106,28 @@ void loop() {
             float axis_Y = myIMU.readFloatGyroY();
             float axis_Z = myIMU.readFloatGyroZ();
            
-            //Convert to Degrees
-            d = RAD_TO_DEG * (atan2(-yAng, -zAng) + PI);
-            e = RAD_TO_DEG * (atan2(-xAng, -zAng) + PI);
-            f = RAD_TO_DEG * (atan2(-yAng, -xAng) + PI);
+           
            
             float pitch=(180*atan2(a,sqrt(b*b+c*c))/PI);
             float roll=(180*atan2(b,sqrt(a*a+c*c))/PI);
             // print the data in CSV format
-            Serial.print(a, 3);
-            Serial.print(',');
-            Serial.print(b, 3);
-            Serial.print(',');
-            Serial.print(c, 3);
-            Serial.print(',');
-            Serial.print(d, 3);
-            Serial.print(',');
-            Serial.print(e, 3);
-            Serial.print(',');
-            Serial.print(f, 3);
+            // Serial.print(a, 3);
+            // Serial.print(',');
+            // Serial.print(b, 3);
+            // Serial.print(',');
+            // Serial.print(c, 3);
+            // Serial.print(',');
+            // Serial.print(d, 3);
+            // Serial.print(',');
+            // Serial.print(e, 3);
+            // Serial.print(',');
+            // Serial.print(f, 3);
             Serial.print(pitch,3);
             Serial.print(',');
             Serial.print(roll,3);
             Serial.println();
 
-            updateIMU(a, b, c, axis_X, axis_Y, axis_Ｚ);
+            updateIMU(a, b, c, axis_X, axis_Y, axis_Z);
 
             if (samplesRead == numSamples) {
               // add an empty line if it's the last sample
