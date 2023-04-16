@@ -1,18 +1,20 @@
 
-
 #include <ArduinoBLE.h>
 #include <LSM6DS3.h>
 #include <Wire.h>
+#include <time.h>
+#include <string>
 LSM6DS3 myIMU(I2C_MODE, 0x6A);  //I2C device address 0x6A
 float aX, aY, aZ, gX, gY, gZ;
 const float accelerationThreshold = 3;  // threshold of significant in G's
-const int numSamples = 10000;
+const int numSamples = 100;
 int count=0;
-
+String s;
 float _checkAddNum=0;
 int samplesRead = numSamples;
 
 double d, e, f;
+double start, end,diff; 
 
 
 BLEService bleService("19B20000-E8F2-537E-4F6C-D104768A1214");  // Bluetooth® Low Energy Service
@@ -21,6 +23,8 @@ BLEService bleService("19B20000-E8F2-537E-4F6C-D104768A1214");  // Bluetooth® L
 BLEBoolCharacteristic switchChar("ff00", BLERead | BLEWrite);
 BLEStringCharacteristic numberChar("ff01", BLERead | BLENotify, 20);
 BLEStringCharacteristic recordChar("ff02", BLERead | BLENotify, 72);
+BLEStringCharacteristic datrChar("ff03", BLERead | BLENotify, 4096);
+
 
 
 
@@ -43,6 +47,7 @@ void setup() {
   bleService.addCharacteristic(switchChar);
   bleService.addCharacteristic(numberChar);
   bleService.addCharacteristic(recordChar);
+  bleService.addCharacteristic(datrChar);
 
   // add service
   BLE.addService(bleService);
@@ -59,6 +64,7 @@ void setup() {
 }
 
 void loop() {
+  //    Serial.println(NRF_FICR->DEVICEADDR[0]);
   // listen for Bluetooth® Low Energy peripherals to connect:
   BLEDevice central = BLE.central();
 
@@ -77,6 +83,10 @@ void loop() {
         Serial.println(switchChar.value());
         if (switchChar.value()) {
           Serial.println("start !!");
+          start = clock();
+          s="[";
+          diff=0;
+
 
           while (samplesRead == numSamples) {
             // read the acceleration data
@@ -95,8 +105,11 @@ void loop() {
             }
           }
 
+          
+          
+        
 
-          while (samplesRead < numSamples) {
+          while (diff<=30) {
             samplesRead++;
             float a = myIMU.readFloatAccelX();
             float b = myIMU.readFloatAccelY();
@@ -131,12 +144,25 @@ void loop() {
             
             Serial.println();
 
+          end = clock();
+          diff = (end - start)/ CLOCKS_PER_SEC; 
+         
+          Serial.println(diff);
+          
+            
+            
             updateIMU(a, b, c, axis_X, axis_Y, axis_Z);
 
             if (samplesRead == numSamples) {
               // add an empty line if it's the last sample
               Serial.println();
             }
+          }
+          if(diff>=30){
+            s+="]";
+            Serial.println(s); //沒錯誤後打開測試
+            datrChar.writeValue(s);
+
           }
         } else {  // a 0 value
           Serial.println("end !!");
@@ -151,6 +177,6 @@ void loop() {
 }
 
 void updateIMU(float ax, float ay, float az, float gx, float gy, float gz) {
-
+s+="["+(String(ax) + "," + String(ay) + "," + String(az) + "," + String(gx) + "," + String(gy) + "," + String(gz))+"],";
   recordChar.writeValue(String(ax) + "," + String(ay) + "," + String(az) + "," + String(gx) + "," + String(gy) + "," + String(gz));
 }
