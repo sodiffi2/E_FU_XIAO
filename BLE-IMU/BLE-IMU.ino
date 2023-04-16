@@ -5,16 +5,17 @@
 #include <Wire.h>
 LSM6DS3 myIMU(I2C_MODE, 0x6A);  //I2C device address 0x6A
 float aX, aY, aZ, gX, gY, gZ;
-const float accelerationThreshold = 5;  // threshold of significant in G's
+const float accelerationThreshold = 3;  // threshold of significant in G's
 const int numSamples = 10000;
+int count=0;
+
+float _checkAddNum=0;
 int samplesRead = numSamples;
-//int axis_X,axis_Y,axis_Z;
-int minval = 265;
-int maxval = 402;
+
 double d, e, f;
 
 
-BLEService bleService("19B10000-E8F2-537E-4F6C-D104768A1214");  // Bluetooth® Low Energy Service
+BLEService bleService("19B20000-E8F2-537E-4F6C-D104768A1214");  // Bluetooth® Low Energy Service
 
 // Bluetooth® Low Energy Characteristic
 BLEBoolCharacteristic switchChar("ff00", BLERead | BLEWrite);
@@ -37,7 +38,6 @@ void setup() {
       ;
   }
   // set advertised local name and service UUID:
-  BLE.setLocalName("e-fu .111");
 
   // add the characteristic to the service
   bleService.addCharacteristic(switchChar);
@@ -53,7 +53,7 @@ void setup() {
   numberChar.writeValue("0");
   recordChar.writeValue("");
   BLE.setAdvertisedService(bleService);
-  BLE.setLocalName("e-fu .111");
+  BLE.setLocalName("e-fu .112");
   // start advertising
   BLE.advertise();
 }
@@ -110,21 +110,25 @@ void loop() {
            
             float pitch=(180*atan2(a,sqrt(b*b+c*c))/PI);
             float roll=(180*atan2(b,sqrt(a*a+c*c))/PI);
-            // print the data in CSV format
-            // Serial.print(a, 3);
-            // Serial.print(',');
-            // Serial.print(b, 3);
-            // Serial.print(',');
-            // Serial.print(c, 3);
-            // Serial.print(',');
-            // Serial.print(d, 3);
-            // Serial.print(',');
-            // Serial.print(e, 3);
-            // Serial.print(',');
-            // Serial.print(f, 3);
+             bool isMinAngle = false, isMaxAngle = false;
+            // _displayAngle = pitch;
+            isMinAngle = pitch < -80;
+            isMaxAngle = pitch > 80;
+            if (_checkAddNum == 0 && isMinAngle) _checkAddNum += .5;
+
+            if (_checkAddNum == 0.5 && isMaxAngle) _checkAddNum += .5;
+
+            if (_checkAddNum == 1) {
+              count += 1;
+              _checkAddNum = 0.0;
+            }
             Serial.print(pitch,3);
             Serial.print(',');
             Serial.print(roll,3);
+            Serial.print(',');
+            Serial.print(count);
+            Serial.println();
+            
             Serial.println();
 
             updateIMU(a, b, c, axis_X, axis_Y, axis_Z);
