@@ -17,13 +17,13 @@ double d, e, f;
 double start, end,diff; 
 
 
-BLEService bleService("19B20000-E8F2-537E-4F6C-D104768A1214");  // Bluetooth® Low Energy Service
+BLEService bleService("19B20000-E8F2-537E-4F6C-"+NRF_FICR->DEVICEADDR[0]);  // Bluetooth® Low Energy Service
 
 // Bluetooth® Low Energy Characteristic
 BLEBoolCharacteristic switchChar("ff00", BLERead | BLEWrite);
 BLEStringCharacteristic numberChar("ff01", BLERead | BLENotify, 20);
 BLEStringCharacteristic recordChar("ff02", BLERead | BLENotify, 72);
-BLEStringCharacteristic datrChar("ff03", BLERead | BLENotify, 4096);
+BLEStringCharacteristic datrChar("ff03", BLERead | BLENotify, 65535);
 
 
 
@@ -67,7 +67,6 @@ void loop() {
   //    Serial.println(NRF_FICR->DEVICEADDR[0]);
   // listen for Bluetooth® Low Energy peripherals to connect:
   BLEDevice central = BLE.central();
-
   // if a central is connected to peripheral:
   if (central) {
     Serial.print("Connected to central: ");
@@ -109,7 +108,7 @@ void loop() {
           
         
 
-          while (diff<=30) {
+          while (diff<=5) {
             samplesRead++;
             float a = myIMU.readFloatAccelX();
             float b = myIMU.readFloatAccelY();
@@ -146,12 +145,8 @@ void loop() {
 
           end = clock();
           diff = (end - start)/ CLOCKS_PER_SEC; 
-         
           Serial.println(diff);
-          
-            
-            
-            updateIMU(a, b, c, axis_X, axis_Y, axis_Z);
+            updateIMU(a, b, c, axis_X, axis_Y, axis_Z,pitch);
 
             if (samplesRead == numSamples) {
               // add an empty line if it's the last sample
@@ -176,7 +171,7 @@ void loop() {
   }
 }
 
-void updateIMU(float ax, float ay, float az, float gx, float gy, float gz) {
-s+="["+(String(ax) + "," + String(ay) + "," + String(az) + "," + String(gx) + "," + String(gy) + "," + String(gz))+"],";
+void updateIMU(float ax, float ay, float az, float gx, float gy, float gz,float pitch) {
+s+="["+String(ax) + "," + String(ay) + "," + String(az) + "," + String(gx) + "," + String(gy) + "," + String(gz)+ "," + String(pitch)+"],";
   recordChar.writeValue(String(ax) + "," + String(ay) + "," + String(az) + "," + String(gx) + "," + String(gy) + "," + String(gz));
 }
