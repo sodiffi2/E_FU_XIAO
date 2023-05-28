@@ -4,26 +4,27 @@
 #include <Wire.h>
 #include <time.h>
 #include <string>
+#include <ctime>
 LSM6DS3 myIMU(I2C_MODE, 0x6A);  //I2C device address 0x6A
 float aX, aY, aZ, gX, gY, gZ;
 const float accelerationThreshold = 3;  // threshold of significant in G's
-const int numSamples = 100;
-int count=0;
+// const int numSamples = 100;
+int count = 0;
 String s;
-float _checkAddNum=0;
-int samplesRead = numSamples;
-
+float _checkAddNum = 0;
+// int samplesRead = numSamples;
+int times = 5;
 double d, e, f;
-double start, end,diff; 
+double start, end, diff;
 
 
-BLEService bleService("19B20000-E8F2-537E-4F6C-"+NRF_FICR->DEVICEADDR[0]);  // Bluetooth® Low Energy Service
+BLEService bleService("19B20000-E8F2-537E-4F6C-");  // Bluetooth® Low Energy Service
 
 // Bluetooth® Low Energy Characteristic
-BLEBoolCharacteristic switchChar("ff00", BLERead | BLEWrite);
+BLEStringCharacteristic switchChar("ff00", BLERead | BLEWrite,20);
 BLEStringCharacteristic numberChar("ff01", BLERead | BLENotify, 20);
 BLEStringCharacteristic recordChar("ff02", BLERead | BLENotify, 72);
-BLEStringCharacteristic datrChar("ff03", BLERead | BLENotify, 65535);
+BLEStringCharacteristic datrChar("ff03", BLERead | BLENotify, 65535000);
 
 
 
@@ -53,8 +54,8 @@ void setup() {
   BLE.addService(bleService);
 
   // set the initial value for the characeristic:
-  switchChar.writeValue(0);
-  switchChar.broadcast();
+  switchChar.writeValue("0");
+  // switchChar.broadcast();
   numberChar.writeValue("0");
   recordChar.writeValue("");
   BLE.setAdvertisedService(bleService);
@@ -64,8 +65,7 @@ void setup() {
 }
 
 void loop() {
-  //    Serial.println(NRF_FICR->DEVICEADDR[0]);
-  // listen for Bluetooth® Low Energy peripherals to connect:
+ 
   BLEDevice central = BLE.central();
   // if a central is connected to peripheral:
   if (central) {
@@ -83,49 +83,38 @@ void loop() {
         if (switchChar.value()) {
           Serial.println("start !!");
           start = clock();
-          s="[";
-          diff=0;
+          diff = 0;
+          // while (samplesRead == numSamples) {
+          //   // read the acceleration data
+          //   aX = myIMU.readFloatAccelX();
+          //   aY = myIMU.readFloatAccelY();
+          //   aZ = myIMU.readFloatAccelZ();
 
+          //   // sum up the absolutes
+          //   float aSum = fabs(aX) + fabs(aY) + fabs(aZ);
 
-          while (samplesRead == numSamples) {
-            // read the acceleration data
-            aX = myIMU.readFloatAccelX();
-            aY = myIMU.readFloatAccelY();
-            aZ = myIMU.readFloatAccelZ();
+          //   // check if it's above the threshold
+          //   if (aSum >= accelerationThreshold) {
+          //     // reset the sample read count
+          //     samplesRead = 0;
+          //     break;
+          //   }
+          // }
 
-            // sum up the absolutes
-            float aSum = fabs(aX) + fabs(aY) + fabs(aZ);
-
-            // check if it's above the threshold
-            if (aSum >= accelerationThreshold) {
-              // reset the sample read count
-              samplesRead = 0;
-              break;
-            }
-          }
-
-          
-          
-        
-
-          while (diff<=5) {
-            samplesRead++;
+          while (diff <= times) {
             float a = myIMU.readFloatAccelX();
             float b = myIMU.readFloatAccelY();
             float c = myIMU.readFloatAccelZ();
-
             float axis_X = myIMU.readFloatGyroX();
             float axis_Y = myIMU.readFloatGyroY();
             float axis_Z = myIMU.readFloatGyroZ();
-           
-           
-           
-            float pitch=(180*atan2(a,sqrt(b*b+c*c))/PI);
-            float roll=(180*atan2(b,sqrt(a*a+c*c))/PI);
-             bool isMinAngle = false, isMaxAngle = false;
+
+            float pitch = (180 * atan2(a, sqrt(b * b + c * c)) / PI);
+            float roll = (180 * atan2(b, sqrt(a * a + c * c)) / PI);
+            bool isMinAngle = false, isMaxAngle = false;
             // _displayAngle = pitch;
-            isMinAngle = pitch < -80;
-            isMaxAngle = pitch > 80;
+            isMinAngle = pitch < -5;
+            isMaxAngle = pitch > 60;
             if (_checkAddNum == 0 && isMinAngle) _checkAddNum += .5;
 
             if (_checkAddNum == 0.5 && isMaxAngle) _checkAddNum += .5;
@@ -134,30 +123,29 @@ void loop() {
               count += 1;
               _checkAddNum = 0.0;
             }
-            Serial.print(pitch,3);
+            Serial.print(pitch, 3);
             Serial.print(',');
-            Serial.print(roll,3);
+            Serial.print(roll, 3);
             Serial.print(',');
             Serial.print(count);
             Serial.println();
-            
+
             Serial.println();
 
-          end = clock();
-          diff = (end - start)/ CLOCKS_PER_SEC; 
-          Serial.println(diff);
-            updateIMU(a, b, c, axis_X, axis_Y, axis_Z,pitch);
+            end = clock();
+            diff = (end - start) / CLOCKS_PER_SEC;
+            Serial.println(diff);
+            updateIMU(a, b, c, axis_X, axis_Y, axis_Z, pitch,count);
 
-            if (samplesRead == numSamples) {
-              // add an empty line if it's the last sample
-              Serial.println();
-            }
+           
           }
-          if(diff>=30){
-            s+="]";
-            Serial.println(s); //沒錯誤後打開測試
+          if (diff >= times) {
+            s=(String(millis())+ "','"+String(count));            
+            Serial.println(String(millis())+ ","+String(count));  
             datrChar.writeValue(s);
-
+            count=0;
+            // diff=0;
+            
           }
         } else {  // a 0 value
           Serial.println("end !!");
@@ -171,7 +159,7 @@ void loop() {
   }
 }
 
-void updateIMU(float ax, float ay, float az, float gx, float gy, float gz,float pitch) {
-s+="["+String(ax) + "," + String(ay) + "," + String(az) + "," + String(gx) + "," + String(gy) + "," + String(gz)+ "," + String(pitch)+"],";
-  recordChar.writeValue(String(ax) + "," + String(ay) + "," + String(az) + "," + String(gx) + "," + String(gy) + "," + String(gz));
+void updateIMU(float ax, float ay, float az, float gx, float gy, float gz, float pitch,int c) {
+  // s += "[" + String(ax) + "," + String(ay) + "," + String(az) + "," + String(gx) + "," + String(gy) + "," + String(gz) + "," + String(pitch) + "],";
+  recordChar.writeValue(String(ax) + "," + String(ay) + "," + String(az) + "," + String(gx) + "," + String(gy) + "," + String(gz)+ "," + String(pitch)+ "," + String(c));
 }
