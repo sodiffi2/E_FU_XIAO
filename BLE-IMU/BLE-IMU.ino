@@ -13,7 +13,7 @@ int count = 0;
 String s;
 float _checkAddNum = 0;
 // int samplesRead = numSamples;
-int times = 5;
+int times = 30;
 double d, e, f;
 double start, end, diff;
 
@@ -100,7 +100,7 @@ void loop() {
           //     break;
           //   }
           // }
-
+          string parameter = "手";
           while (diff <= times) {
             float a = myIMU.readFloatAccelX();
             float b = myIMU.readFloatAccelY();
@@ -113,8 +113,23 @@ void loop() {
             float roll = (180 * atan2(b, sqrt(a * a + c * c)) / PI);
             bool isMinAngle = false, isMaxAngle = false;
             // _displayAngle = pitch;
-            isMinAngle = pitch < -5;
-            isMaxAngle = pitch > 60;
+            //腳部
+            //pitch +=90;
+            //isMinAngle = pitch < 30;
+            //isMaxAngle = pitch > 77;
+            //手部
+            //isMinAngle = pitch < -5;
+            //isMaxAngle = pitch > 60;
+
+            if (parameter == "手") {
+                isMinAngle = pitch < -5;
+                isMaxAngle = pitch > 60;
+            } else {
+                pitch += 90;
+                isMinAngle = pitch < 30;
+                isMaxAngle = pitch > 77;
+              }
+              
             if (_checkAddNum == 0 && isMinAngle) _checkAddNum += .5;
 
             if (_checkAddNum == 0.5 && isMaxAngle) _checkAddNum += .5;
