@@ -100,7 +100,7 @@ void loop() {
           //     break;
           //   }
           // }
-          string parameter = "手";
+         // string parameter = "手";
           while (diff <= times) {
             float a = myIMU.readFloatAccelX();
             float b = myIMU.readFloatAccelY();
@@ -112,23 +112,23 @@ void loop() {
             float pitch = (180 * atan2(a, sqrt(b * b + c * c)) / PI);
             float roll = (180 * atan2(b, sqrt(a * a + c * c)) / PI);
             bool isMinAngle = false, isMaxAngle = false;
-            // _displayAngle = pitch;
+            //_displayAngle = pitch;
             //腳部
             //pitch +=90;
-            //isMinAngle = pitch < 30;
-            //isMaxAngle = pitch > 77;
+            isMinAngle = pitch < 30;
+            isMaxAngle = pitch > 73;
             //手部
-            //isMinAngle = pitch < -5;
-            //isMaxAngle = pitch > 60;
+            isMinAngle = pitch < 0;
+            isMaxAngle = pitch > 70;
 
-            if (parameter == "手") {
-                isMinAngle = pitch < -5;
-                isMaxAngle = pitch > 60;
-            } else {
-                pitch += 90;
-                isMinAngle = pitch < 30;
-                isMaxAngle = pitch > 77;
-              }
+            //if (parameter == "手") {
+            //  isMinAngle = pitch < -5;
+            //    isMaxAngle = pitch > 60;
+            //} else {
+              //  pitch += 90;
+                //isMinAngle = pitch < 30;
+                //isMaxAngle = pitch > 77;
+              //}
               
             if (_checkAddNum == 0 && isMinAngle) _checkAddNum += .5;
 
@@ -141,15 +141,15 @@ void loop() {
             Serial.print(pitch, 3);
             Serial.print(',');
             Serial.print(roll, 3);
-            Serial.print(',');
-            Serial.print(count);
-            Serial.println();
+            //Serial.print(',');
+            //Serial.print(count);
+            //Serial.println();
 
             Serial.println();
 
             end = clock();
             diff = (end - start) / CLOCKS_PER_SEC;
-            Serial.println(diff);
+            //Serial.println(diff);
             updateIMU(a, b, c, axis_X, axis_Y, axis_Z, pitch,count);
 
            
