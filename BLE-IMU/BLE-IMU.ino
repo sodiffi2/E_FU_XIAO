@@ -141,15 +141,15 @@ void loop() {
             Serial.print(pitch, 3);
             Serial.print(',');
             Serial.print(roll, 3);
-            //Serial.print(',');
-            //Serial.print(count);
-            //Serial.println();
+            Serial.print(',');
+            Serial.print(count);
+            Serial.println();
 
             Serial.println();
 
             end = clock();
             diff = (end - start) / CLOCKS_PER_SEC;
-            //Serial.println(diff);
+            Serial.println(diff);
             updateIMU(a, b, c, axis_X, axis_Y, axis_Z, pitch,count);
 
            
