@@ -21,10 +21,10 @@ double start, end, diff;
 BLEService bleService("19B20000-E8F2-537E-4F6C-");  // Bluetooth® Low Energy Service
 
 // Bluetooth® Low Energy Characteristic
-BLEStringCharacteristic switchChar("ff00", BLERead | BLEWrite,20);
+BLEStringCharacteristic switchChar("ff00", BLERead | BLEWrite, 20);
 BLEStringCharacteristic numberChar("ff01", BLERead | BLENotify, 20);
 BLEStringCharacteristic recordChar("ff02", BLERead | BLENotify, 72);
-BLEStringCharacteristic datrChar("ff03", BLERead | BLENotify, 65535000);
+BLEStringCharacteristic datrChar("ff03", BLERead | BLENotify, 72);
 
 
 
@@ -59,13 +59,13 @@ void setup() {
   numberChar.writeValue("0");
   recordChar.writeValue("");
   BLE.setAdvertisedService(bleService);
-  BLE.setLocalName("e-fu .112");
+  BLE.setLocalName("cubed M .112");
   // start advertising
   BLE.advertise();
 }
 
 void loop() {
- 
+
   BLEDevice central = BLE.central();
   // if a central is connected to peripheral:
   if (central) {
@@ -78,29 +78,14 @@ void loop() {
       // if the remote device wrote to the characteristic,
       // use the value to control the LED:
       if (switchChar.written()) {
+        String switchChar_string = switchChar.value();
         Serial.println("get value : ");
-        Serial.println(switchChar.value());
-        if (switchChar.value()) {
+        Serial.println(switchChar_string);
+        if (switchChar_string.concat("cubed-M")) {
           Serial.println("start !!");
           start = clock();
           diff = 0;
-          // while (samplesRead == numSamples) {
-          //   // read the acceleration data
-          //   aX = myIMU.readFloatAccelX();
-          //   aY = myIMU.readFloatAccelY();
-          //   aZ = myIMU.readFloatAccelZ();
 
-          //   // sum up the absolutes
-          //   float aSum = fabs(aX) + fabs(aY) + fabs(aZ);
-
-          //   // check if it's above the threshold
-          //   if (aSum >= accelerationThreshold) {
-          //     // reset the sample read count
-          //     samplesRead = 0;
-          //     break;
-          //   }
-          // }
-         // string parameter = "手";
           while (diff <= times) {
             float a = myIMU.readFloatAccelX();
             float b = myIMU.readFloatAccelY();
@@ -117,19 +102,22 @@ void loop() {
             //pitch +=90;
             isMinAngle = pitch < 30;
             isMaxAngle = pitch > 73;
+            if (switchChar_string.concat("hand")) {
+              Serial.println("in hand");
+              isMinAngle = pitch < 0;
+              isMaxAngle = pitch > 70;
+            }
             //手部
-            isMinAngle = pitch < 0;
-            isMaxAngle = pitch > 70;
 
             //if (parameter == "手") {
             //  isMinAngle = pitch < -5;
             //    isMaxAngle = pitch > 60;
             //} else {
-              //  pitch += 90;
-                //isMinAngle = pitch < 30;
-                //isMaxAngle = pitch > 77;
-              //}
-              
+            //  pitch += 90;
+            //isMinAngle = pitch < 30;
+            //isMaxAngle = pitch > 77;
+            //}
+
             if (_checkAddNum == 0 && isMinAngle) _checkAddNum += .5;
 
             if (_checkAddNum == 0.5 && isMaxAngle) _checkAddNum += .5;
@@ -150,18 +138,26 @@ void loop() {
             end = clock();
             diff = (end - start) / CLOCKS_PER_SEC;
             Serial.println(diff);
-            updateIMU(a, b, c, axis_X, axis_Y, axis_Z, pitch,count);
-
-           
+            updateIMU(a, b, c, axis_X, axis_Y, axis_Z, pitch, count);
           }
           if (diff >= times) {
-            s=(String(millis())+ "','"+String(count));            
-            Serial.println(String(millis())+ ","+String(count));  
-            datrChar.writeValue(s);
-            count=0;
+            s = String(end) + "," + String(count);
+            Serial.println(s);
+            int endsign = 0;
+            while (endsign <= 10) {
+              endsign += 1;
+              // diff = (end - start) / CLOCKS_PER_SEC;
+              datrChar.writeValue(s);
+              Serial.println(s);
+              // datrChar.writeValue("this this");
+              // updateIMU(0, 0, 0, 0, 0, 0, 0,0);
+            }
+            count = 0;
+            // updateIMU(0, 0, 0, 0, 0, 0, 0,0);
+
             // diff=0;
-            
           }
+
         } else {  // a 0 value
           Serial.println("end !!");
         }
@@ -174,7 +170,7 @@ void loop() {
   }
 }
 
-void updateIMU(float ax, float ay, float az, float gx, float gy, float gz, float pitch,int c) {
+void updateIMU(float ax, float ay, float az, float gx, float gy, float gz, float pitch, int c) {
   // s += "[" + String(ax) + "," + String(ay) + "," + String(az) + "," + String(gx) + "," + String(gy) + "," + String(gz) + "," + String(pitch) + "],";
-  recordChar.writeValue(String(ax) + "," + String(ay) + "," + String(az) + "," + String(gx) + "," + String(gy) + "," + String(gz)+ "," + String(pitch)+ "," + String(c));
+  recordChar.writeValue(String(ax) + "," + String(ay) + "," + String(az) + "," + String(gx) + "," + String(gy) + "," + String(gz) + "," + String(pitch) + "," + String(c));
 }
